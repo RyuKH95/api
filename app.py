@@ -1,8 +1,7 @@
 from datetime import timedelta, datetime
 from logging import log
-from flask import Flask, jsonify, request, current_app
+from flask import Flask, jsonify, request, current_app, Response, g
 from flask.json import JSONEncoder
-from flask.wrappers import Response
 from sqlalchemy import create_engine, text
 import bcrypt
 import jwt
@@ -31,7 +30,7 @@ def login_required(f):
 
             user_id = payload['user_id']
             g.user_id = user_id
-            g.user = get_user_info(user_id) if user_id else None
+            g.user = get_user(user_id) if user_id else None
         else:
             return Response(status=401)
 
