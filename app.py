@@ -16,6 +16,7 @@ class CustomJSONEncoder(JSONEncoder):
             return list(obj)
         return JSONEncoder.default(self, obj)
 
+#Decorators
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -65,7 +66,7 @@ def insert_follow(user_follow):
 
 def insert_unfollow(user_unfollow):
     return current_app.database.execute(text("""
-        DELETE FROM users_follow_list WHERE user_id = :id AND follow_user_id = :follow)
+        DELETE FROM users_follow_list WHERE user_id = :id AND follow_user_id = :unfollow)
         """), user_unfollow).rowcount
 
 def get_timeline(user_id):
@@ -73,6 +74,11 @@ def get_timeline(user_id):
         SELECT t.user_id, t.tweet FROM tweets t LEFT JOIN users_follow_list ufl ON ufl.user_id = :user_id WHERE t.user_id =:user_id OR t.user_id = ufl.follow_user_id
         """), {'user_id' : user_id}).fetchall()
     return [{'user_id' : tweet['user_id'], 'tweet' : tweet['tweet']} for tweet in timeline]
+
+def get_user_id_and_password(email):
+    row = current_app.database.execute(text("""
+        SELECT id, hashed_password FROM users WHERE email = :email"""), {'email':email}).fetchone()
+    return {'id':row['id'],'hashed_password':row['hashed_password']} if row else None
 
 
 def create_app(test_config = None):
@@ -105,12 +111,10 @@ def create_app(test_config = None):
         credential = request.json
         email = credential['email']
         password = credential['password']
-
-        row = database.execute(text("""
-            SELECT id, hashed_password FROM users WHERE email = :email"""), {'email':email}).fetchone()
+        user_credential = get_user_id_and_password(email)
         
-        if row and bcrypt.checkpw(password.encode('UTF-8'), row['hashed_password'].encode('UTF-8')):
-            user_id = row['id']
+        if user_credential and bcrypt.checkpw(password.encode('UTF-8'), user_credential['hashed_password'].encode('UTF-8')):
+            user_id = user_credential['id']
             payload = {
                 'user_id':user_id,
                 'exp':datetime.utcnow() + timedelta(seconds = 60 * 60 * 24)
@@ -137,6 +141,7 @@ def create_app(test_config = None):
     @login_required
     def follow():
         payload = request.json
+        payload['id'] = g.user_id
         insert_follow(payload)
 
         return '', 200
@@ -145,6 +150,7 @@ def create_app(test_config = None):
     @login_required
     def unfollow():
         payload = request.json
+        payload['id'] = g.user_id
         insert_unfollow(payload)
 
         return '', 200
