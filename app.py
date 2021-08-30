@@ -1,10 +1,9 @@
-from datetime import timedelta, datetime
-from logging import log
-from flask import Flask, jsonify, request, current_app, Response, g
+import jwt
+import bcrypt
+from flask import Flask, request, jsonify, current_app, Response, g
 from flask.json import JSONEncoder
 from sqlalchemy import create_engine, text
-import bcrypt
-import jwt
+from datetime import datetime, timedelta
 from functools import wraps
 
 ##Default JSON encoder는 set를 JSON으로 변환할 수 없다.
@@ -83,6 +82,9 @@ def get_user_id_and_password(email):
 
 def create_app(test_config = None):
     app = Flask(__name__)
+
+    CORS(app)
+
     app.json_encoder = CustomJSONEncoder
 
     if test_config is None:
@@ -157,6 +159,12 @@ def create_app(test_config = None):
 
     @app.route("/timeline/<int:user_id>", methods=['GET'])
     def timeline(user_id):
+        return jsonify({'user_id' : user_id, 'timeline' : get_timeline(user_id)})
+
+    @app.route("/timeline", methods=['GET'])
+    @login_required
+    def user_timeline():
+        user_id = g.user_id
         return jsonify({'user_id' : user_id, 'timeline' : get_timeline(user_id)})
 
     return app
