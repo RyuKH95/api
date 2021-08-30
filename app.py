@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from logging import log
 from flask import Flask, jsonify, request, current_app
 from flask.json import JSONEncoder
@@ -117,7 +117,7 @@ def create_app(test_config = None):
                 'exp':datetime.utcnow() + timedelta(seconds = 60 * 60 * 24)
             }
             token = jwt.encode(payload, app.config['JWT_SECRET_KEY'], 'HS256')
-            return jsonify({'access_token':token.decode('UTF-8')})
+            return jsonify({'access_token':token})
         else:
             return '', 401
 
