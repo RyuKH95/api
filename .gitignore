@@ -1,2 +1,4 @@
 config.py
 __pycache__/
+test_*.py
+.pytest_cache/
